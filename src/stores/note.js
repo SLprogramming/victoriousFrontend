@@ -7,10 +7,10 @@ export const useNoteStore = defineStore("note", {
 		// user: JSON.parse(sessionStorage.getItem("DATA")),
 	}),
 	actions: {
-		fetchNotes() {
+		fetchNotes(payload) {
 			const appStore = useAppStore()
 			return getAxiosClient()
-				.get(`doctor-notes`)
+				.get(`doctor-notes`, { params: payload })
 				.then(res => {
 					return res.data
 				})

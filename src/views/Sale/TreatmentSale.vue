@@ -84,6 +84,32 @@
 										placeholder="Type to search">
 									</VueMultiselect>
 								</div> -->
+								<div class="mb-3 row" v-if="preselectedTreatments.length > 0">
+									<label for="" class="form-label"
+										>Treatment Preselection</label
+									>
+									<div class="col">
+										<select
+											class="form-control"
+											name=""
+											v-model="selectedDoctorNote"
+											id="">
+											<option
+												v-for="(item, i) in preselectedTreatments"
+												:key="i"
+												:value="item">
+												{{ item.name }}
+											</option>
+										</select>
+									</div>
+									<div class="col-2">
+										<button
+											class="btn btn-primary"
+											@click="comfirmPreselection">
+											Comfirm
+										</button>
+									</div>
+								</div>
 								<div class="mb-3">
 									<!-- v-if="selectMonitor.treatment" -->
 									<label class="form-label">Treatment Unit</label>
@@ -1135,6 +1161,7 @@
 
 <script>
 import VueMultiselect from "vue-multiselect"
+import { useNoteStore } from "../../stores/note"
 import { useRouter } from "vue-router"
 import { cusFormatDate, openDialog } from "../../helpers"
 import PrintModal from "@/components/Sale/MedicineSale/PrintModal.vue"
@@ -1171,6 +1198,7 @@ export default {
 		const medicineItemStore = useMedicineItemStore()
 		const treatmentUnitStore = useTreatmentUnitStore()
 		const accountingListStore = useAccountingListStore()
+		const noteStore = useNoteStore()
 		const medicineSaleStore = useMedicineSaleStore()
 		const treatmentListStore = useTreatmentListStore()
 		const treatmentSelectionStore = useTreatmentSelectionStore()
@@ -1201,6 +1229,7 @@ export default {
 			refundStore,
 			treatmentVoucherStore,
 			patientStore,
+			noteStore,
 			medicineItemStore,
 			accountingListStore,
 			medicineSaleStore,
@@ -1232,6 +1261,7 @@ export default {
 	data() {
 		return {
 			selectedTherapist: {},
+			selectedDoctorNote: {},
 			selectMonitor: {
 				bodyParts: "",
 				treatment: "",
@@ -1308,6 +1338,7 @@ export default {
 			items: [],
 			selectedItem: {},
 			selectedItems: [],
+			patientSelected: false,
 			isPaymentMethodSeparate: false,
 			customers: [],
 			doctors: [],
@@ -1315,6 +1346,7 @@ export default {
 			selectedDoctor: null,
 			voucherData: {},
 			remark: "",
+			preselectedTreatments: [],
 			bankAccounts: [],
 			selectedBankAccount: {},
 			cashAccounts: [],
@@ -1395,7 +1427,28 @@ export default {
 		updateSelectedTherapist(e) {
 			this.selectedTherapist = { ...e }
 		},
+		comfirmPreselection() {
+			let arr = this.selectedDoctorNote.relatedTreatment
+			// Function to duplicate items based on 'qty'
+			function duplicateItems(array) {
+				let result = []
+				array.forEach(item => {
+					for (let i = 0; i < item.qty; i++) {
+						result.push({ item: item.item_id, qty: 1, parentID: item._id })
+					}
+				})
+				return result
+			}
 
+			// Duplicate items in the array
+			arr = duplicateItems(arr)
+			console.log(arr)
+			arr.map(e => {
+				this.selectedTreatment = e.item
+				this.updateSelectedTreatments()
+			})
+			console.log(this.selectedDoctorNote)
+		},
 		updateSelectedTreatments() {
 			let alreadyExistIndex = this.selectedItems.findIndex(
 				item => item.item_id == this.selectedTreatment._id
@@ -1472,8 +1525,20 @@ export default {
 			this.selectedTreatmentList = { ...e }
 			this.updateSelectMonitor({ type: "treatment", value: e._id })
 		},
+		async fetchNotes(id) {
+			try {
+				this.preselectedTreatments = []
+				let noteRes = await this.noteStore.fetchNotes({ relatedPatient: id })
+				console.log(noteRes)
+				this.preselectedTreatments = [...noteRes.list]
+			} catch (err) {
+				console.error(err)
+			} finally {
+			}
+		},
 		updateSelectedCustomer(e) {
 			this.selectedCustomer = { ...e }
+			this.fetchNotes(this.selectedCustomer._id)
 		},
 		// end updater
 		// treatment
