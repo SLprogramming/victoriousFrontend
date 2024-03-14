@@ -7,7 +7,8 @@
 		<template
 			v-if="
 				appStore.user.data.user.role == 'master' ||
-				appStore.user.data.user.role == 'Sales'
+				appStore.user.data.user.role == 'Sales' ||
+				appStore.user.data.user.role == 'Master'
 			">
 			<ul class="list-unstyled p-1">
 				<li class="mb-1 pb-1">

@@ -28,7 +28,7 @@
 						</tr>
 					</template>
 					<tr v-else>
-						<td class="text-center">No List Exist!</td>
+						<td class="text-center" colspan="7">No Item Exist!</td>
 					</tr>
 				</tbody>
 			</table>

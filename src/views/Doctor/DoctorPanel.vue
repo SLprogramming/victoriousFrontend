@@ -1,5 +1,5 @@
 <template>
-	<div class="row">
+	<div class="row minHeight">
 		<div class="col-4">
 			<div class="card">
 				<div class="card-body">
@@ -9,6 +9,7 @@
 							name=""
 							id="user_name"
 							v-model="personStatus"
+							:disabled="isLogin"
 							class="form-select">
 							<option value="doctor">Doctor</option>
 							<option value="therapist">Therapist</option>
@@ -20,12 +21,13 @@
 							name=""
 							id="user_name"
 							v-model="doctorName"
+							:disabled="isLogin"
 							class="form-select">
 							<template v-if="allDoctor.length > 0">
 								<option
 									v-for="(doctor, i) in allDoctor"
 									:key="i"
-									:value="doctor.name">
+									:value="doctor">
 									{{ doctor.name }}
 								</option>
 							</template>
@@ -37,12 +39,13 @@
 							name=""
 							id="user_name"
 							v-model="therapistName"
+							:disabled="isLogin"
 							class="form-select">
 							<template v-if="allTherapist.length > 0">
 								<option
 									v-for="(therapist, i) in allTherapist"
 									:key="i"
-									:value="therapist.name">
+									:value="therapist">
 									{{ therapist.name }}
 								</option>
 							</template>
@@ -82,7 +85,37 @@
 			<div class="card">
 				<div class="card-body">
 					<div class="row">
-						<table class="table table-borderless table-striped">
+						<div
+							class="col d-flex justify-content-end"
+							v-if="isLogin && personStatus == 'doctor'">
+							<button
+								class="btn"
+								:class="{
+									'btn-outline-primary': toggleForNote == 'note',
+									'btn-primary': toggleForNote == 'list',
+								}"
+								@click="
+									() => {
+										if (toggleForNote == 'note') {
+											toggleForNote = 'list'
+										} else {
+											toggleForNote = 'note'
+										}
+									}
+								">
+								<span v-if="toggleForNote == 'note'" class="fw-bold">
+									<i class="bi bi-person-vcard-fill"></i>
+								</span>
+								<span v-else>
+									<i class="bi bi-list-ul"></i>
+								</span>
+							</button>
+						</div>
+					</div>
+					<div class="row">
+						<table
+							v-if="toggleForNote == 'list'"
+							class="table table-borderless table-striped">
 							<thead>
 								<tr>
 									<th>#</th>
@@ -112,6 +145,100 @@
 								</tr>
 							</tbody>
 						</table>
+						<template v-else>
+							<div class="col pe-4 border-end border-3">
+								<div>
+									<label for="">Title</label>
+									<input
+										type="text"
+										name=""
+										class="form-control"
+										v-model="noteTitle"
+										id="" />
+								</div>
+								<div class="mt-2">
+									<label for="" class="form-label"> Patient </label>
+									<VueMultiselect
+										:model-value="selectedPatient"
+										@update:model-value="updateSelectedPatient"
+										:options="patients"
+										:searchable="true"
+										:close-on-select="true"
+										:allow-empty="false"
+										:option-height="31"
+										label="name"
+										track-by="_id" />
+								</div>
+								<div class="mt-2">
+									<label for="">Remark</label>
+									<input
+										type="text"
+										name=""
+										class="form-control"
+										v-model="noteRemark"
+										id="" />
+								</div>
+								<div class="mt-2 row">
+									<label for="" class="form-label"> Treatment </label>
+									<div class="col-10">
+										<VueMultiselect
+											:model-value="selectedTreatment"
+											@update:model-value="updateSelectedTreatment"
+											:options="treatments"
+											:searchable="true"
+											:close-on-select="true"
+											:allow-empty="false"
+											:option-height="31"
+											label="name"
+											track-by="_id" />
+									</div>
+									<div class="col-2">
+										<button class="btn btn-primary">
+											<i class="bi bi-plus-lg" @click="addSelectedItems"></i>
+										</button>
+									</div>
+								</div>
+								<div class="mt-4">
+									<button class="btn btn-primary" @click="saveNote">
+										<span v-if="isNoteLoading"><Spinner></Spinner></span>
+										save
+									</button>
+								</div>
+							</div>
+							<div class="col overflow-scroll" style="max-height: 280px">
+								<template v-if="selectedItems.length > 0">
+									<div
+										class="row m-1"
+										v-for="(item, i) in selectedItems"
+										:key="i">
+										<div class="col-6">
+											<input
+												type="text"
+												name=""
+												:value="item.name"
+												disabled
+												class="form-control"
+												id="" />
+										</div>
+										<div class="col">
+											<input
+												type="number"
+												name=""
+												v-model="item.qty"
+												class="col form-control"
+												id="" />
+										</div>
+										<div class="col">
+											<button
+												class="btn btn-danger"
+												@click="removeItemFromList(i)">
+												<i class="bi bi-dash-lg"></i>
+											</button>
+										</div>
+									</div>
+								</template>
+							</div>
+						</template>
 					</div>
 				</div>
 			</div>
@@ -326,6 +453,8 @@
 
 <script setup>
 import { useAppStore } from "../../stores/app"
+import Spinner from "../../components/Common/Spinner.vue"
+import VueMultiselect from "vue-multiselect"
 import { useTherapistStore } from "../../stores/therapist"
 import Loading from "@/components/Common/Loading.vue"
 import { useDoctorStore } from "../../stores/doctor"
@@ -338,17 +467,30 @@ import {
 	openPrint,
 } from "../../helpers"
 import { onMounted, ref } from "vue"
+import { usePatientStore } from "../../stores/patient"
+import { useTreatmentListStore } from "../../stores/treatmentList"
+import { useNoteStore } from "../../stores/note"
+
 const passwordType = ref("password")
 const showPassword = ref(false)
 const therapistStore = useTherapistStore()
+
 const personStatus = ref("doctor")
 const doctorName = ref("")
+const noteStore = useNoteStore()
+const treatmentListStore = useTreatmentListStore()
 const therapistName = ref("")
 const userCode = ref("")
+const isNoteLoading = ref(false)
+const selectedItems = ref([])
 const appStore = useAppStore()
 const doctorStore = useDoctorStore()
 const selections = ref([])
 const isLogin = ref(false)
+const treatments = ref([])
+const selectedTreatment = ref({})
+const patients = ref([])
+const selectedPatient = ref({})
 const filterData = ref({
 	treatmentStatus: "all",
 	startDate: "",
@@ -359,7 +501,11 @@ const doctorData = ref({})
 const allDoctor = ref([])
 const allTherapist = ref([])
 const allAppointments = ref([])
+const noteTitle = ref("")
+const noteRemark = ref("")
 const allVouchers = ref([])
+const patientStore = usePatientStore()
+const toggleForNote = ref("list")
 const voucherData = ref({
 	total: 0,
 	unfinish: 0,
@@ -376,6 +522,73 @@ const appointmentData = ref({
 	finish: 0,
 })
 const isLoading = ref(false)
+const updateSelectedPatient = e => {
+	selectedPatient.value = { ...e }
+}
+const updateSelectedTreatment = e => {
+	selectedTreatment.value = { ...e }
+}
+const removeItemFromList = i => {
+	selectedItems.value.splice(i, 1)
+}
+const resetNote = () => {
+	noteTitle.value = ""
+	noteRemark.value = ""
+	selectedPatient.value = {}
+	selectedItems.value = []
+	selectedTreatment.value = {}
+}
+const saveNote = async () => {
+	try {
+		isNoteLoading.value = true
+		let formData = prepareFormForNote()
+		let res = await noteStore.createNote(formData)
+		console.log(res)
+		console.log(formData)
+	} catch (err) {
+		console.error(err)
+	} finally {
+		isNoteLoading.value = false
+		appStore.showSuccess()
+		resetNote()
+		toggleForNote.value = "list"
+	}
+}
+const prepareFormForNote = () => {
+	let data = {}
+
+	data.name = noteTitle.value
+	data.remark = noteRemark.value
+	data.relatedDoctor = doctorName.value._id
+	data.relatedPatient = selectedPatient.value._id
+	data.relatedTreatment = []
+	selectedItems.value.map(e => {
+		let obj = {}
+		obj.item_id = e.id
+		obj.qty = e.qty
+		data.relatedTreatment.push(obj)
+	})
+	return data
+}
+const addSelectedItems = () => {
+	if (!selectedTreatment.value._id) {
+		return
+	}
+	let alreadyExistIndex = selectedItems.value.findIndex(
+		item => item.id == selectedTreatment.value._id
+	)
+	console.log(alreadyExistIndex)
+	console.log(selectedTreatment.value)
+	if (alreadyExistIndex === -1) {
+		let obj = {}
+		obj.name = selectedTreatment.value.name
+		obj.id = selectedTreatment.value._id
+		obj.qty = 1
+		selectedItems.value.push(obj)
+	} else {
+		selectedItems.value[alreadyExistIndex].qty++
+	}
+}
 const excelExport = () => {
 	let primaryArr = [...selectionsToShow.value]
 	console.log(selectionsToShow.value)
@@ -445,6 +658,7 @@ const togglePasswordShowOrHide = () => {
 	}
 }
 const clear = () => {
+	toggleForNote.value = "list"
 	voucherData.value = { total: 0, unfinish: 0, finish: 0 }
 	treatmentData.value = { total: 0, unfinish: 0, finish: 0 }
 	appointmentData.value = { total: 0, unfinish: 0, finish: 0 }
@@ -466,10 +680,10 @@ const getRequiredData = async filter => {
 			code: userCode.value,
 		}
 		if (personStatus.value == "doctor") {
-			payload.name = doctorName.value
+			payload.name = doctorName.value.name
 			payload.isDoctor = true
 		} else {
-			payload.name = therapistName.value
+			payload.name = therapistName.value.name
 		}
 		console.log(payload)
 		if (filter) {
@@ -608,9 +822,28 @@ const getAllTherapist = async () => {
 		console.error(err)
 	}
 }
+const getAllPatients = async () => {
+	let res = await patientStore.fetchPatients()
+	console.log(res)
+
+	patients.value = res.list
+}
+const getAllTreatments = async () => {
+	let res = await treatmentListStore.fetchTreatmentUnits()
+	console.log(res)
+	treatments.value = res.list
+}
 onMounted(async () => {
 	await getAllDoctors()
 	await getAllTherapist()
+	await getAllPatients()
+	await getAllTreatments()
 	// await getRequiredData()
 })
 </script>
+
+<style scoped>
+.minHeight {
+	min-height: 350px;
+}
+</style>

@@ -1882,7 +1882,7 @@
 												</a>
 
 												<ul class="dropdown-menu">
-													<!-- <li>
+													<li>
 														<button
 															@click.stop="deleteVoucherList(item)"
 															class="dropdown-item text-danger fw-bold"
@@ -1893,7 +1893,7 @@
 															><template v-else> Delete</template>
 														</button>
 													</li>
-													<li><hr class="dropdown-divider" /></li> -->
+													<li><hr class="dropdown-divider" /></li>
 
 													<li>
 														<button
@@ -3540,7 +3540,7 @@ const editPermission = () => {
 
 	if (cashTableList.value.length > 0) {
 		cashTableList.value.map(e => {
-			if (appStore.user.data.user.email == "maykyimyinttheinpos@gmail.com") {
+			if (appStore.user.data.user.email == "ownervictorious@gmail.com") {
 				e.editPermission = true
 			} else {
 				if (getTimestamp(e.permissionDate) > dateNow.value) {
@@ -3553,7 +3553,7 @@ const editPermission = () => {
 	}
 	if (bankTableList.value.length > 0) {
 		bankTableList.value.map(e => {
-			if (appStore.user.data.user.email == "maykyimyinttheinpos@gmail.com") {
+			if (appStore.user.data.user.email == "ownervictorious@gmail.com") {
 				e.editPermission = true
 			} else {
 				if (getTimestamp(e.permissionDate) > dateNow.value) {
@@ -3566,7 +3566,7 @@ const editPermission = () => {
 	}
 	if (allVoucherList.value.length > 0) {
 		allVoucherList.value.map(e => {
-			if (appStore.user.data.user.email == "maykyimyinttheinpos@gmail.com") {
+			if (appStore.user.data.user.email == "ownervictorious@gmail.com") {
 				e.editPermission = true
 			} else {
 				if (getTimestamp(e.permissionDate) > dateNow.value) {

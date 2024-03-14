@@ -2120,7 +2120,7 @@ export default {
 				]
 				this.fillMedicineItems(storedItems)
 			}
-
+			console.log("test")
 			// this.prepareVoucherData(responseAfterMultiTreatmentSale)
 			this.resetItemDiscountData()
 			this.resetBalanceTotalData()
